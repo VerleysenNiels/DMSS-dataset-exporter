@@ -7,7 +7,21 @@ Has a built-in ability to be dumped and loaded from a dump, as to allow a part o
 ToDo
 
 ## Dumping and loading
-ToDo
+Use the dump function to save the build dataset in a given file.
+The filename should use the .pickle extension.
+After doing this you can move this pickle file to the machine where you want to use this dataset.
+There you can use the load function with this filename.
+
+```
+exporter.dump(./dataset.pickle)
+# Generates dataset.pickle file in the same folder as the Dataset_Exporter.py file
+
+exporter.load(./dataset.pickle)
+# Loads the previously saved dataset
+```
 
 ## Normalization
+ToDo
+
+## Accessing the data
 ToDo
