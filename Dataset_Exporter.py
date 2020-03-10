@@ -17,8 +17,8 @@ General procedure as follows:
 For more information check out the readme.
 """
 
-import os
 import pickle
+import numpy as np
 from dmss.io.hdf5io import readorig
 
 
@@ -28,6 +28,8 @@ class Dataset:
         self.sensors = []
         self.timing = []
         self.data = []
+        self.normalized = []
+        self.training_size = None
 
 
 """ Main class to be used to build/dump/load/normalize the dataset """
@@ -42,45 +44,28 @@ class Dataset_Exporter:
         self.dataset = Dataset()
         self.dataset.sensors = sensors
         # Define variables for processing the sensor information
-        data = []
-        zero = None     # This is the earliest timepoint
-        start = None    # This is the earliest timepoint where every sensor started measuring
-        end = None      # This is the smallest maxTime
-        timestep = None
+        data = {}
+
         # Start with reading the information from the sensors
         for sensor in sensors:
             # Read sensor data
             time, signal, info = readorig(sensor, mission=mission, timeInDays=True)
-            data.append([time, signal])
-            # Keep track of earliest measurement
-            if zero is None:
-                zero = info['minTime']
-            elif zero > info['minTime']:
-                zero = info['minTime']
-            # Keep track of highest minTime
-            if end is None:
-                end = info['minTime']
-            elif end < info['minTime']:
-                end = info['minTime']
-            # Keep track of lowest maxTime
-            if end is None:
-                end = info['maxTime']
-            elif end > info['maxTime']:
-                end = info['maxTime']
-            # ToDo: check if same sampling rate
-            if timestep is None:
-                timestep = info['medianTimeStep']
-            elif timestep != info['medianTimeStep']:
-                print('WARNING DIFFERENT MEAN TIMESTEP DETECTED FOR SENSOR: ' + sensor)
-                print('Expected: ' + str(timestep) + ' but got: ' + str(info['medianTimeStep']) + ' instead')
+            data[sensor] = {'time': time, 'signal': signal}
 
-        # Startpoint of measurements is zero so we take measurements at index*timestep
-        # Find total amount of timesteps extracted from the data
-        length = round((end - start) / timestep)
+        # Determine timing variables
+        start = max([data[name]['time'][0] for name in sensors])  # This is the earliest timepoint where every sensor started measuring
+        end = min([data[name]['time'][-1] for name in sensors])  # This is the smallest maxTime
+        timestep = np.median([np.median(np.diff(data[name]['time'])) for name in sensors])
+
+        #ToDo: check for gaps
+
         # Fill in timing information
-        self.dataset.timing = [(start - zero) + i*timestep for i in range(0, length + 1)]
+        self.dataset.timing = np.arange(start, end, timestep)
 
-        # ToDo: Build a dataset object from this information
+        # Homogenize timesteps by resampling the data (interpolation)
+        self.dataset.data = []
+        [self.dataset.data.append(np.interp(self.dataset.timing, data[sensor]['time'], data[sensor]['signal'])) for sensor in sensors]
+        self.dataset.data = np.transpose(self.dataset.data)
 
 
     # LOAD
@@ -93,13 +78,19 @@ class Dataset_Exporter:
         with open(file, "wb") as pickle_out:
             pickle.dump(self.dataset, pickle_out)
 
+    # ToDo: Check if this works
     # Normalize
-    def normalize(self):
-        print("ToDo")
-        # ToDo: Determine mean and variance of the time series from each sensor
-        # ToDo: Normalize by (X - mean) / variance
-        # ToDo: Save normalized time series in self.dataset
-
+    def normalize(self, training_size):
+        # Determine which portion of the data will be used for training
+        self.dataset.training_size = training_size
+        self.dataset.normalized = []
+        for signal in np.transpose(self.dataset.data):
+            # Determine mean and standard deviation for training set
+            mean = np.mean(signal[0:training_size-1])
+            deviation = np.std(signal[0:training_size-1])
+            norm = lambda x: (x - mean)/deviation
+            self.dataset.normalized.append(norm(signal))
+        self.dataset.normalized = np.transpose(self.dataset.normalized)
 
 # Test or run through here
 if __name__ == '__main__':
