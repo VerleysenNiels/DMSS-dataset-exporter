@@ -108,6 +108,6 @@ class Dataset_Exporter:
 # Test or run through here
 if __name__ == '__main__':
     exporter = Dataset_Exporter()
-    exporter.build("mex", ["", ])
+    exporter.build("mex", ["NACW0S00", "NAWG0051", "MG13G118", "NACW0S01", "NDMA5790", "NAWG0050", "MG13G119", "NDWDBT0M", "NDMA5740", "MG13G120", "NDWDBT0I", "NACAH030", "NDWDBT0G", "NACAH040", "NACAH050", "NDWDBT0K", "NDMA5715", "MG13G112", "MG13G102"])
     exporter.plot()
 
