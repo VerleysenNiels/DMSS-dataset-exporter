@@ -66,7 +66,7 @@ class Dataset_Exporter:
             i += 1
             for time_index in range(i, len(data[sensor]['time'])):
                 measured_timestep = data[sensor]['time'][time_index] - data[sensor]['time'][time_index - 1]
-                if measured_timestep > 1.5 * timestep:
+                if measured_timestep > 1.2 * timestep:
                     print("Gap found for sensor: " + sensor + " expected timestep to be " + str(timestep) + " but got " + str(measured_timestep) + " instead.")
 
         # Fill in timing information
