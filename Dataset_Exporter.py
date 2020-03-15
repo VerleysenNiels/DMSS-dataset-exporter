@@ -20,6 +20,7 @@ For more information check out the readme.
 import pickle
 import numpy as np
 from dmss.io.hdf5io import readorig
+import matplotlib.pyplot as plt
 
 
 """ Very basic class that holds the exported dataset"""
@@ -78,6 +79,18 @@ class Dataset_Exporter:
         with open(file, "wb") as pickle_out:
             pickle.dump(self.dataset, pickle_out)
 
+    def plot(self, normalized=False):
+        if normalized:
+            data = self.dataset.normalized
+        else:
+            data = self.dataset.data
+
+        for i in range(0, len(self.dataset.sensors)):
+            plt.plot(self.dataset.timing, np.transpose(data)[i])
+            plt.ylabel("Signal: " + self.dataset.sensors[i])
+            plt.xlabel("Time (days)")
+            plt.show()
+
     # ToDo: Check if this works
     # Normalize
     def normalize(self, training_size):
@@ -94,4 +107,7 @@ class Dataset_Exporter:
 
 # Test or run through here
 if __name__ == '__main__':
-    print("Test")
+    exporter = Dataset_Exporter()
+    exporter.build("mex", ["", ])
+    exporter.plot()
+
