@@ -58,7 +58,16 @@ class Dataset_Exporter:
         end = min([data[name]['time'][-1] for name in sensors])  # This is the smallest maxTime
         timestep = np.median([np.median(np.diff(data[name]['time'])) for name in sensors])
 
-        #ToDo: check for gaps
+        #Check for gaps
+        for sensor in sensors:
+            i = 0
+            while data[sensor]['time'][i] < start:
+                i += 1
+            i += 1
+            for time_index in range(i, len(data[sensor]['time'])):
+                measured_timestep = data[sensor]['time'][time_index] - data[sensor]['time'][time_index - 1]
+                if measured_timestep > 1.5 * timestep:
+                    print("Gap found for sensor: " + sensor + " expected timestep to be " + str(timestep) + " but got " + str(measured_timestep) + " instead.")
 
         # Fill in timing information
         self.dataset.timing = np.arange(start, end, timestep)
