@@ -28,10 +28,11 @@ class Dataset:
     def __init__(self):
         self.sensors = []
         self.timing = []
+        self.missing = []  # Binary indicators, 0 when value was measured and 1 when it was not
         self.data = []
         self.normalized = []
         self.training_size = None
-
+        self.start = 0     # Gives start index (skipping long gaps)
 
 """ Main class to be used to build/dump/load/normalize the dataset """
 class Dataset_Exporter:
@@ -58,10 +59,38 @@ class Dataset_Exporter:
         end = min([data[name]['time'][-1] for name in sensors])  # This is the smallest maxTime
         timestep = np.median([np.median(np.diff(data[name]['time'])) for name in sensors])
 
-        #ToDo: check for gaps
-
         # Fill in timing information
         self.dataset.timing = np.arange(start, end, timestep)
+        
+        #Check for gaps
+        for sensor in sensors:
+            missing = []
+            i = 0
+            while data[sensor]['time'][i] < start:
+                i += 1
+            i += 1
+            for time_index in range(i, len(data[sensor]['time'])):
+                measured_timestep = data[sensor]['time'][time_index] - data[sensor]['time'][time_index - 1]
+
+                # Fill in binary indicator variable for gaps
+                if measured_timestep > 1.2 * timestep:
+                    missing.append(1)
+                else:
+                    missing.append(0)
+
+                # If measured gap is too large, don't use it
+                if measured_timestep > 50 * timestep:
+                    print("Gap found for sensor: " + sensor + " at time: " + str(data[sensor]['time'][time_index - 1]) + " expected timestep to be " + str(timestep) + " but got " + str(measured_timestep) + " instead.")
+                    if self.dataset.start < data[sensor]['time'][time_index]:
+                        print(str(len(self.dataset.timing)))
+                        self.dataset.start = int(round((data[sensor]['time'][time_index] - start)/timestep))
+                        print('New starting time: ' + str(self.dataset.timing[self.dataset.start]))
+
+                # Add binary indicators for missing values of this sensor to the dataset
+                self.dataset.missing.append(missing)
+
+        # Transpose the list with binary indicators to have the same structure as the values
+        self.dataset.missing = np.transpose(self.dataset.missing)
 
         # Homogenize timesteps by resampling the data (interpolation)
         self.dataset.data = []
@@ -81,12 +110,12 @@ class Dataset_Exporter:
 
     def plot(self, normalized=False):
         if normalized:
-            data = self.dataset.normalized
+            data = self.dataset.normalized[self.dataset.start:-1]
         else:
-            data = self.dataset.data
+            data = self.dataset.data[self.dataset.start:-1]
 
         for i in range(0, len(self.dataset.sensors)):
-            plt.plot(self.dataset.timing, np.transpose(data)[i])
+            plt.plot(self.dataset.timing[self.dataset.start:-1], np.transpose(data)[i])
             plt.ylabel("Signal: " + self.dataset.sensors[i])
             plt.xlabel("Time (days)")
             plt.show()
@@ -108,6 +137,12 @@ class Dataset_Exporter:
 # Test or run through here
 if __name__ == '__main__':
     exporter = Dataset_Exporter()
-    exporter.build("mex", ["NACW0S00", "NAWG0051", "MG13G118", "NACW0S01", "NDMA5790", "NAWG0050", "MG13G119", "NDWDBT0M", "NDMA5740", "MG13G120", "NDWDBT0I", "NACAH030", "NDWDBT0G", "NACAH040", "NACAH050", "NDWDBT0K", "NDMA5715", "MG13G112", "MG13G102"])
-    exporter.plot()
+    #exporter.load("Dataset.pickle")
+    exporter.build("mex", ["NACW0S00", "NAWG0051", "NACW0S01", "NDMA5790", "NAWG0050", "NDWDBT0M", "NDMA5740", "NDWDBT0I", "NACAH030", "NDWDBT0G", "NACAH040", "NACAH050", "NDWDBT0K", "NDMA5715"])
+    #exporter.plot()
+    #print(exporter.dataset.sensors)
+    #print(exporter.dataset.timing)
+    exporter.normalize(10000)
+    exporter.plot(normalized=True)
+    exporter.dump("Dataset.pickle")
 
