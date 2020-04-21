@@ -113,14 +113,36 @@ class Dataset_Exporter:
             data = self.dataset.normalized[self.dataset.start:-1]
         else:
             data = self.dataset.data[self.dataset.start:-1]
+       
+        data = np.transpose(data)
+        missing = np.transpose(self.dataset.missing)
 
         for i in range(0, len(self.dataset.sensors)):
-            plt.plot(self.dataset.timing[self.dataset.start:-1], np.transpose(data)[i])
-            plt.ylabel("Signal: " + self.dataset.sensors[i])
-            plt.xlabel("Time (days)")
-            plt.show()
+            ax = plt.figure()
+            fig, ax = plt.subplots(nrows = 1, ncols = 2)
+            start = 0            
+            current = missing[i][0]
+            for j in range(1, len(data[i])):
+                if current != missing[i][j]:
+                    if current: 
+                       ax[1].plot(self.dataset.timing[self.dataset.start+start:self.dataset.start+start+j-1], data[i][start:start+j-1], color='r')
+                    else: 
+                       ax[0].plot(self.dataset.timing[self.dataset.start+start:self.dataset.start+start+j-1], data[i][start:start+j-1], color='r') 
+                    start = j
+                    current = missing[i][j]
 
-    # ToDo: Check if this works
+            ax[0].set_ylabel("Signal: " + self.dataset.sensors[i])
+            ax[0].set_xlabel("Time (days)")
+            ax[0].set_xlim(0, 365)
+            ax[0].set_ylim(-15, 15)
+            ax[0].set_title('Real data', fontsize=30)
+            ax[1].set_ylabel("Signal: " + self.dataset.sensors[i])
+            ax[1].set_xlabel("Time (days)")
+            ax[1].set_xlim(0, 365)
+            ax[1].set_ylim(-15, 15)
+            ax[1].set_title('Interpolated data', fontsize=30)
+            ax.show()
+
     # Normalize
     def normalize(self, training_size):
         # Determine which portion of the data will be used for training
@@ -142,7 +164,7 @@ if __name__ == '__main__':
     #exporter.plot()
     #print(exporter.dataset.sensors)
     #print(exporter.dataset.timing)
-    exporter.normalize(10000)
-    exporter.plot(normalized=True)
+    exporter.normalize(8500)  # about 100 days
+    #exporter.plot(normalized=True)
     exporter.dump("Dataset.pickle")
 
