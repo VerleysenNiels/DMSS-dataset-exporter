@@ -19,7 +19,7 @@ For more information check out the readme.
 
 import pickle
 import numpy as np
-from dmss.io.hdf5io import readorig
+#from dmss.io.hdf5io import readorig  #DO NOT LOAD THIS ON ENVIRONMENTS OUTSIDE THE SERVER
 import matplotlib.pyplot as plt
 
 
@@ -40,6 +40,8 @@ class Dataset_Exporter:
     def __init__(self):
         self.dataset = None
 
+
+    """ ONLY WORKS ON THE SERVER
     # BUILD
     def build(self, mission, sensors):
         # Init dataset object
@@ -96,7 +98,7 @@ class Dataset_Exporter:
         self.dataset.data = []
         [self.dataset.data.append(np.interp(self.dataset.timing, data[sensor]['time'], data[sensor]['signal'])) for sensor in sensors]
         self.dataset.data = np.transpose(self.dataset.data)
-
+    """
 
     # LOAD
     def load(self, file):
@@ -118,8 +120,7 @@ class Dataset_Exporter:
         missing = np.transpose(self.dataset.missing)
 
         for i in range(0, len(self.dataset.sensors)):
-            ax = plt.figure()
-            fig, ax = plt.subplots(nrows = 1, ncols = 2)
+            fig, ax = plt.subplots(nrows=2, ncols=1)
             start = 0            
             current = missing[i][0]
             for j in range(1, len(data[i])):
@@ -132,16 +133,16 @@ class Dataset_Exporter:
                     current = missing[i][j]
 
             ax[0].set_ylabel("Signal: " + self.dataset.sensors[i])
-            ax[0].set_xlabel("Time (days)")
             ax[0].set_xlim(0, 365)
-            ax[0].set_ylim(-15, 15)
-            ax[0].set_title('Real data', fontsize=30)
+            ax[0].set_ylim(-10, 10)
+            ax[0].set_title('Real data')
             ax[1].set_ylabel("Signal: " + self.dataset.sensors[i])
             ax[1].set_xlabel("Time (days)")
             ax[1].set_xlim(0, 365)
-            ax[1].set_ylim(-15, 15)
-            ax[1].set_title('Interpolated data', fontsize=30)
-            ax.show()
+            ax[1].set_ylim(-10, 10)
+            ax[1].set_title('Interpolated data')
+            plt.tight_layout()
+            plt.savefig("./Plots/" + str(self.dataset.sensors[i]), dpi=1000)
 
     # Normalize
     def normalize(self, training_size):
@@ -159,12 +160,10 @@ class Dataset_Exporter:
 # Test or run through here
 if __name__ == '__main__':
     exporter = Dataset_Exporter()
-    #exporter.load("Dataset.pickle")
-    exporter.build("mex", ["NACW0S00", "NAWG0051", "NACW0S01", "NDMA5790", "NAWG0050", "NDWDBT0M", "NDMA5740", "NDWDBT0I", "NACAH030", "NDWDBT0G", "NACAH040", "NACAH050", "NDWDBT0K", "NDMA5715"])
-    #exporter.plot()
+    exporter.load("Dataset.pickle")
     #print(exporter.dataset.sensors)
     #print(exporter.dataset.timing)
-    exporter.normalize(8500)  # about 100 days
-    #exporter.plot(normalized=True)
-    exporter.dump("Dataset.pickle")
+    #exporter.normalize(8500)  # about 100 days
+    exporter.plot(normalized=True)
+    #exporter.dump("Dataset.pickle")
 
